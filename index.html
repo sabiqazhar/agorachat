@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat mari chat</title>
+    <style>
+        form{
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: grey;
+            padding: 20px;
+        }
+
+        #textbox{
+            float: left;
+            width: 40%;
+            height: 30px;
+            border: none;
+            margin-left: 10px;
+        }
+        
+        #username{
+            float: left;
+            width: 20%;
+            height: 30px;
+            border: none;
+        }
+
+        button{
+            float: left;
+            width: 20%;
+            height: 33px;
+        }
+
+        #message li:nth-child(even){
+            background:#333;
+            color: white;
+        }
+
+        li{
+            padding: 5px;
+        }
+
+        .hidden{
+            display: none;
+        }
+
+        #rightBox{
+            float: left;
+            width: 25%;
+        }
+
+        #leftBox{
+            float: left;
+            width: 70%;
+        }
+    </style>
+</head>
+<body>
+    <div id="homepage">
+        <h1>Welcome to the chatroom agora 🦍</h1>
+        <input type="text" name="" id="username" placeholder="Enter your username"autocomplete="off">
+        <button id="submitname"> Enter! </button>
+    </div>
+
+    <div id="chatroom" class="hidden">
+
+        <div id="leftBox">
+            <ul id="message"></ul>
+        </div>
+
+        <div id="rightBox">
+            <h2>Online user 🐱‍💻</h2>
+            <ul id="user_lists"></ul>
+        </div>
+         
+        <form action="">
+            <input type="text" name="" id="textbox"  placeholder="Enter your message" autocomplete="off"> <button> Send </button>
+        </form>
+
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script>
+        let socket = io();
+        let username = '';
+
+        $("form").submit(()=>{
+            username = $("#username").val();
+            socket.emit("newMessage", username + ": " +$("#textbox").val());
+            $("#textbox").val("");
+            isTyping = false;
+            return false
+        });
+
+        //user list
+        socket.on("addOnlineUser", (usernames)=>{
+            $("#user_lists").empty();
+            for(let i=0; i<usernames.length; i++) {
+                $("#user_lists").append($('<li id="user_ ' + usernames[i] +'">').text(usernames[i]));
+            }
+        });
+
+        //to append the message
+        socket.on("newMessage", (msg)=>{
+            $("#message").append($("<li>").text(msg + " || Time: " + Date()));
+            $(".temporary").remove();
+        });
+
+        //if user regist name and enter chatroom
+        $("#submitname").click(() =>{
+           //validate username
+           if($("#username")!=''){
+               username = $("#username").val();
+               socket.emit('registerUser', username);
+           } 
+        });
+
+        //approve respond from user
+        socket.on("registerRespond",(status)=>{
+            if(status === false) {
+                alert('Username already use, Please enter another username');
+            } else {
+                $("#chatroom").removeClass("hidden");
+                $("#homepage").addClass("hidden");        
+            }
+        });
+
+        //user typing
+        let isTyping = false;
+        $("#textbox").keyup(()=>{
+            if(isTyping == false){
+                socket.emit("newTyping", username + " is typing...")
+            }
+
+            isTyping = true;
+        });
+
+        socket.on("newTyping", (msg)=>{
+            $("#message").append($('<li class="temporary">').text(msg));
+        })
+
+        
+    </script>
+</body>
+</html>
